@@ -1,0 +1,17 @@
+= README
+
+This project was a quick exercise after my initial reading of JEP draft: Structured Concurrency (Preview).
+
+http://openjdk.java.net/jeps/8277129
+
+One of the examples in the text is that of a "web crawler", which I tried to do.
+
+This project is the result of a few hours of investment
+after reading the corresponding documentation.
+
+I hope it will help to assess the basic usability of the API:
+this is the code which occurred to me right after reading documentation.
+
+The Gradle scripts are not complete to compile the project.
+I have used them by habit to import into Intellij IDEA
+and then customize the compilation with the required flags.
