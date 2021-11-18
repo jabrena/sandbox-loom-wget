@@ -16,84 +16,77 @@ class DownloaderTest
     static final URI source = URI.create("https://blank.org/");
 
     @Test
-    void sequential (@TempDir Path tmp) throws Exception
+    void sequential () throws Exception
     {
-        err.printf("sequential: tmp = %s%n", tmp);
         final var downloader = new SequentialDownloader();
         final var start = Instant.now();
-        downloader.get(source, tmp);
+        downloader.test(source);
         final var finish = Instant.now();
         final var elapsed = Duration.between(start, finish);
         err.printf("sequential: elapsed = %s%n", elapsed);
     }
 
     @Test
-    void thread (@TempDir Path tmp) throws Exception
+    void thread () throws Exception
     {
-        err.printf("thread: tmp = %s%n", tmp);
         final var downloader = new ThreadDownloader(Thread.ofPlatform().factory());
         final var start = Instant.now();
-        downloader.get(source, tmp);
+        downloader.test(source);
         final var finish = Instant.now();
         final var elapsed = Duration.between(start, finish);
         err.printf("thread: elapsed = %s%n", elapsed);
     }
 
     @Test
-    void threadVirtual (@TempDir Path tmp) throws Exception
+    void threadVirtual () throws Exception
     {
-        err.printf("threadVirtual: tmp = %s%n", tmp);
         final var downloader = new ThreadDownloader(Thread.ofVirtual().factory());
         final var start = Instant.now();
-        downloader.get(source, tmp);
+        downloader.test(source);
         final var finish = Instant.now();
         final var elapsed = Duration.between(start, finish);
         err.printf("threadVirtual: elapsed = %s%n", elapsed);
     }
 
     @Test
-    void executor (@TempDir Path tmp) throws Exception
+    void executor () throws Exception
     {
-        err.printf("executor: tmp = %s%n", tmp);
         final var downloader = new ExecutorDownloader(Executors.newCachedThreadPool(Thread.ofPlatform().factory()));
         final var start = Instant.now();
-        downloader.get(source, tmp);
+        downloader.test(source);
         final var finish = Instant.now();
         final var elapsed = Duration.between(start, finish);
         err.printf("executor: elapsed = %s%n", elapsed);
     }
 
     @Test
-    void executorVirtual (@TempDir Path tmp) throws Exception
+    void executorVirtual () throws Exception
     {
-        err.printf("executor: tmp = %s%n", tmp);
         final var downloader = new ExecutorDownloader(Executors.newCachedThreadPool(Thread.ofVirtual().factory()));
         final var start = Instant.now();
-        downloader.get(source, tmp);
+        downloader.test(source);
         final var finish = Instant.now();
         final var elapsed = Duration.between(start, finish);
         err.printf("executor: elapsed = %s%n", elapsed);
     }
 
     @Test
-    void structuredExecutor (@TempDir Path tmp) throws Exception
+    void structuredExecutor () throws Exception
     {
-        err.printf("structuredExecutor: tmp = %s%n", tmp);
         final var downloader = new StructuredExecutorDownloader(Thread.ofPlatform().factory());
         final var start = Instant.now();
-        downloader.get(source, tmp);
+        downloader.test(source);
         final var finish = Instant.now();
         final var elapsed = Duration.between(start, finish);
         err.printf("structuredExecutor: elapsed = %s%n", elapsed);
     }
 
     @Test
-    void structuredExecutorVirtual (@TempDir Path tmp) throws Exception
+    void structuredExecutorVirtual () throws Exception
     {
-        err.printf("structuredExecutorVirtual: tmp = %s%n", tmp);
         final var downloader = new StructuredExecutorDownloader(Thread.ofVirtual().factory());
         final var start = Instant.now();
-        downloader.get(source, tmp);
+        downloader.test(source);
         final var finish = Instant.now();
         final var elapsed = Duration.between(start, finish);
         err.printf("structuredExecutorVirtual: elapsed = %s%n", elapsed);

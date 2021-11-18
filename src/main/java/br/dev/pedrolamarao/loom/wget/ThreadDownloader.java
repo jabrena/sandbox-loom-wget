@@ -2,9 +2,8 @@ package br.dev.pedrolamarao.loom.wget;
 
 import org.jsoup.Jsoup;
 
+import java.io.ByteArrayInputStream;
 import java.net.URI;
-import java.nio.file.Path;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.Phaser;
 import java.util.concurrent.ThreadFactory;
@@ -23,11 +22,11 @@ final class ThreadDownloader extends BaseDownloader
     }
 
     @Override
-    void doGetRecursive (URI source, Path target, String resource) throws Exception
+    void doGetRecursive (URI source, String resource) throws Exception
     {
-        final var path = doGet(source, target, resource);
+        final var bytes = doGet(source, resource);
 
-        final var document = Jsoup.parse(path.toFile(), "UTF-8");
+        final var document = Jsoup.parse(new ByteArrayInputStream(bytes), "UTF-8", source.toString());
 
         final var phaser = new Phaser(1);
 
@@ -43,7 +42,7 @@ final class ThreadDownloader extends BaseDownloader
                     {
                         try {
                             if (! exceptions.isEmpty()) return;
-                            doGet( source, target, element.attr("src") );
+                            doGet( source, element.attr("src") );
                         }
                         catch (Exception e) { exceptions.add(e); }
                         finally { phaser.arriveAndDeregister(); }
@@ -69,7 +68,7 @@ final class ThreadDownloader extends BaseDownloader
                     {
                         try {
                             if (! exceptions.isEmpty()) return;
-                            doGet( source, target, element.attr("href") );
+                            doGet( source, element.attr("href") );
                         }
                         catch (Exception e) { exceptions.add(e); }
                         finally { phaser.arriveAndDeregister(); }
@@ -95,7 +94,7 @@ final class ThreadDownloader extends BaseDownloader
                     {
                         try {
                             if (! exceptions.isEmpty()) return;
-                            doGetRecursive( source, target, element.attr("href") );
+                            doGetRecursive( source, element.attr("href") );
                         }
                         catch (Exception e) { exceptions.add(e); }
                         finally { phaser.arriveAndDeregister(); }

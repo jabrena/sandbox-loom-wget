@@ -2,9 +2,8 @@ package br.dev.pedrolamarao.loom.wget;
 
 import org.jsoup.Jsoup;
 
+import java.io.ByteArrayInputStream;
 import java.net.URI;
-import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.concurrent.*;
 
 final class ExecutorDownloader extends BaseDownloader
@@ -21,11 +20,11 @@ final class ExecutorDownloader extends BaseDownloader
     }
 
     @Override
-    void doGetRecursive (URI source, Path target, String resource) throws Exception
+    void doGetRecursive (URI source, String resource) throws Exception
     {
-        final var path = doGet(source, target, resource);
+        final var bytes = doGet(source, resource);
 
-        final var document = Jsoup.parse(path.toFile(), "UTF-8");
+        final var document = Jsoup.parse(new ByteArrayInputStream(bytes), "UTF-8", source.toString());
 
         final var phaser = new Phaser(1);
 
@@ -33,23 +32,26 @@ final class ExecutorDownloader extends BaseDownloader
         futures.add(
             executor.submit(() ->
             {
-                for (var element : document.select("[src]"))
+                try
                 {
-                    if (! exceptions.isEmpty()) break;
-                    phaser.register();
-                    futures.add(
-                        executor.submit(() ->
-                        {
-                            try {
-                                if (! exceptions.isEmpty()) return;
-                                doGet( source, target, element.attr("src") );
-                            }
-                            catch (Exception e) { exceptions.add(e); }
-                            finally { phaser.arriveAndDeregister(); }
-                        })
-                    );
+                    for (var element : document.select("[src]"))
+                    {
+                        if (! exceptions.isEmpty()) { executor.shutdown(); break; }
+                        phaser.register();
+                        futures.add(
+                            executor.submit(() ->
+                            {
+                                try {
+                                    if (! exceptions.isEmpty()) { executor.shutdown(); return; }
+                                    doGet( source, element.attr("src") );
+                                }
+                                catch (Exception e) { exceptions.add(e); }
+                                finally { phaser.arriveAndDeregister(); }
+                            })
+                        );
+                    }
                 }
-                phaser.arriveAndDeregister();
+                finally { phaser.arriveAndDeregister(); }
             })
         );
 
@@ -57,23 +59,26 @@ final class ExecutorDownloader extends BaseDownloader
         futures.add(
             executor.submit(() ->
             {
-                for (var element : document.select("link[href]"))
+                try
                 {
-                    if (! exceptions.isEmpty()) break;
-                    phaser.register();
-                    futures.add(
-                        executor.submit(() ->
-                        {
-                            try {
-                                if (! exceptions.isEmpty()) return;
-                                doGet( source, target, element.attr("href") );
-                            }
-                            catch (Exception e) { exceptions.add(e); }
-                            finally { phaser.arriveAndDeregister(); }
-                        })
-                    );
+                    for (var element : document.select("link[href]"))
+                    {
+                        if (! exceptions.isEmpty()) { executor.shutdown(); break; }
+                        phaser.register();
+                        futures.add(
+                            executor.submit(() ->
+                            {
+                                try {
+                                    if (! exceptions.isEmpty()) { executor.shutdown(); return; }
+                                    doGet( source, element.attr("href") );
+                                }
+                                catch (Exception e) { exceptions.add(e); }
+                                finally { phaser.arriveAndDeregister(); }
+                            })
+                        );
+                    }
                 }
-                phaser.arriveAndDeregister();
+                finally { phaser.arriveAndDeregister(); }
             })
         );
 
@@ -81,23 +86,26 @@ final class ExecutorDownloader extends BaseDownloader
         futures.add(
             executor.submit(() ->
             {
-                for (var element : document.select("a[href]"))
+                try
                 {
-                    if (! exceptions.isEmpty()) break;
-                    phaser.register();
-                    futures.add(
-                        executor.submit(() ->
-                        {
-                            try {
-                                if (! exceptions.isEmpty()) return;
-                                doGetRecursive( source, target, element.attr("href") );
-                            }
-                            catch (Exception e) { exceptions.add(e); }
-                            finally { phaser.arriveAndDeregister(); }
-                        })
-                    );
+                    for (var element : document.select("a[href]"))
+                    {
+                        if (! exceptions.isEmpty()) { executor.shutdown(); break; }
+                        phaser.register();
+                        futures.add(
+                            executor.submit(() ->
+                            {
+                                try {
+                                    if (! exceptions.isEmpty()) { executor.shutdown(); return; }
+                                    doGetRecursive( source, element.attr("href") );
+                                }
+                                catch (Exception e) { exceptions.add(e); }
+                                finally { phaser.arriveAndDeregister(); }
+                            })
+                        );
+                    }
                 }
-                phaser.arriveAndDeregister();
+                finally { phaser.arriveAndDeregister(); }
             })
         );
 

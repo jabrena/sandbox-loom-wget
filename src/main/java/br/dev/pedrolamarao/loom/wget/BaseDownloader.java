@@ -1,44 +1,49 @@
 package br.dev.pedrolamarao.loom.wget;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.URI;
 import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.HashMap;
 
 abstract class BaseDownloader implements Downloader
 {
-    final HashMap<URI, Path> resources = new HashMap<>();
+    final HashMap<URI, byte[]> resources = new HashMap<>();
 
     @Override
-    public final void get (URI source, Path target) throws Exception
+    public final void test (URI source) throws Exception
     {
-        if (! Files.isDirectory(target))
-            throw new RuntimeException("target is not a directory");
-        doGetRecursive(source, target, "");
+        doGetRecursive(source, "");
     }
 
-    abstract void doGetRecursive (URI source, Path target, String resource) throws Exception;
+    abstract void doGetRecursive (URI source, String resource) throws Exception;
 
-    final Path doGet (URI source, Path target, String resource) throws DownloaderException
+    final byte[] doGet (URI source, String resource) throws DownloaderException
     {
         try
         {
-            final var uri0 = new URI(resource);
-            final var uri1 = uri0.isAbsolute() ? uri0 : source.resolve(uri0);
-            if (resources.containsKey(uri1)) return resources.get(uri1);
-            final var path = Paths.get(
-                target.toString(), uri1.getHost(),
-                ( "".equals(resource) || "/".equals(resource) ? "index.html" : resource )
-            );
-            Files.createDirectories(path.getParent());
-            try (var stream = uri1.toURL().openStream()) { Files.copy(stream, path); }
-            resources.put(uri1, path);
-            return path;
+            final var uri = source.resolve( new URI(resource) );
+            if (resources.containsKey(uri)) return resources.get(uri);
+            final var buffer = new ByteArrayOutputStream();
+            try (var stream = uri.toURL().openStream()) { copy(stream, buffer); }
+            resources.put(uri, buffer.toByteArray());
+            return buffer.toByteArray();
         }
         catch (Exception e)
         {
             throw new DownloaderException(source, resource, e);
+        }
+    }
+
+    static void copy (InputStream source, OutputStream sink) throws IOException
+    {
+        final var buffer = new byte[8192];
+        while (true) {
+            final var read = source.read(buffer);
+            if (read == -1) break;
+            sink.write(buffer, 0, read);
         }
     }
 }

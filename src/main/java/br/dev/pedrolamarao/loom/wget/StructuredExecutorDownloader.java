@@ -2,9 +2,8 @@ package br.dev.pedrolamarao.loom.wget;
 
 import org.jsoup.Jsoup;
 
+import java.io.ByteArrayInputStream;
 import java.net.URI;
-import java.nio.file.Path;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.StructuredExecutor;
 import java.util.concurrent.ThreadFactory;
 
@@ -18,11 +17,11 @@ final class StructuredExecutorDownloader extends BaseDownloader
     }
 
     @Override
-    void doGetRecursive (URI source, Path target, String resource) throws Exception
+    void doGetRecursive (URI source, String resource) throws Exception
     {
-        final var path = doGet(source, target, resource);
+        final var bytes = doGet(source, resource);
 
-        final var document = Jsoup.parse(path.toFile(), "UTF-8");
+        final var document = Jsoup.parse(new ByteArrayInputStream(bytes), "UTF-8", source.toString());
 
         try (var executor = StructuredExecutor.open("foo", factory))
         {
@@ -34,7 +33,7 @@ final class StructuredExecutorDownloader extends BaseDownloader
                 {
                     executor.fork(() ->
                     {
-                        doGet( source, target, element.attr("src") );
+                        doGet( source, element.attr("src") );
                         return null;
                     },
                     handler);
@@ -49,7 +48,7 @@ final class StructuredExecutorDownloader extends BaseDownloader
                 {
                     executor.fork(() ->
                     {
-                        doGet( source, target, element.attr("href") );
+                        doGet( source, element.attr("href") );
                         return null;
                     },
                     handler);
@@ -64,7 +63,7 @@ final class StructuredExecutorDownloader extends BaseDownloader
                 {
                     executor.fork(() ->
                     {
-                        doGetRecursive( source, target, element.attr("href") );
+                        doGetRecursive( source, element.attr("href") );
                         return null;
                     },
                     handler);
