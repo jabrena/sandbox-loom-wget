@@ -3,14 +3,13 @@ package br.dev.pedrolamarao.loom.wget;
 import org.jsoup.Jsoup;
 
 import java.net.URI;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.concurrent.*;
 
 final class ExecutorDownloader extends BaseDownloader
 {
-    final CopyOnWriteArrayList<Throwable> exceptions = new CopyOnWriteArrayList<>();
+    final LinkedBlockingQueue<Exception> exceptions = new LinkedBlockingQueue<>();
 
     final ExecutorService executor;
 
@@ -22,15 +21,6 @@ final class ExecutorDownloader extends BaseDownloader
     }
 
     @Override
-    public void get (URI source, Path target) throws Exception
-    {
-        if (! Files.isDirectory(target))
-            throw new RuntimeException("target is not a directory");
-        doGetRecursive(source, target, "");
-    }
-
-    final ArrayList<Path> links = new ArrayList<>();
-
     void doGetRecursive (URI source, Path target, String resource) throws Exception
     {
         final var path = doGet(source, target, resource);
@@ -45,11 +35,15 @@ final class ExecutorDownloader extends BaseDownloader
             {
                 for (var element : document.select("[src]"))
                 {
+                    if (! exceptions.isEmpty()) break;
                     phaser.register();
                     futures.add(
                         executor.submit(() ->
                         {
-                            try { doGet( source, target, element.attr("src") ); }
+                            try {
+                                if (! exceptions.isEmpty()) return;
+                                doGet( source, target, element.attr("src") );
+                            }
                             catch (Exception e) { exceptions.add(e); }
                             finally { phaser.arriveAndDeregister(); }
                         })
@@ -65,11 +59,15 @@ final class ExecutorDownloader extends BaseDownloader
             {
                 for (var element : document.select("link[href]"))
                 {
+                    if (! exceptions.isEmpty()) break;
                     phaser.register();
                     futures.add(
                         executor.submit(() ->
                         {
-                            try { doGet( source, target, element.attr("href") ); }
+                            try {
+                                if (! exceptions.isEmpty()) return;
+                                doGet( source, target, element.attr("href") );
+                            }
                             catch (Exception e) { exceptions.add(e); }
                             finally { phaser.arriveAndDeregister(); }
                         })
@@ -85,11 +83,15 @@ final class ExecutorDownloader extends BaseDownloader
             {
                 for (var element : document.select("a[href]"))
                 {
+                    if (! exceptions.isEmpty()) break;
                     phaser.register();
                     futures.add(
                         executor.submit(() ->
                         {
-                            try { doGetRecursive( source, target, element.attr("href") ); }
+                            try {
+                                if (! exceptions.isEmpty()) return;
+                                doGetRecursive( source, target, element.attr("href") );
+                            }
                             catch (Exception e) { exceptions.add(e); }
                             finally { phaser.arriveAndDeregister(); }
                         })
@@ -106,5 +108,9 @@ final class ExecutorDownloader extends BaseDownloader
         }
 
         executor.shutdownNow();
+
+        if (! exceptions.isEmpty()) {
+            throw exceptions.peek();
+        }
     }
 }

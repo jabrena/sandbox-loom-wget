@@ -13,7 +13,7 @@ import static java.lang.System.err;
 
 class DownloaderTest
 {
-    static final URI source = URI.create("https://crawler-test.com");
+    static final URI source = URI.create("https://blank.org/");
 
     @Test
     void sequential (@TempDir Path tmp) throws Exception
